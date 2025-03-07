@@ -61,13 +61,37 @@ jobs:
     # Step 7: Set up SSH known_hosts and private key
     - name: Set up SSH known_hosts and private key
       run: |
+        # Create .ssh directory
         mkdir -p ~/.ssh
         chmod 700 ~/.ssh
+
+        # Print EC2_PUBLIC_IP for debugging
         echo "EC2_PUBLIC_IP: $EC2_PUBLIC_IP"
+
+        # Add EC2 host to known_hosts
         echo "Running ssh-keyscan for $EC2_PUBLIC_IP"
-        ssh-keyscan -v -H "$EC2_PUBLIC_IP" >> ~/.ssh/known_hosts
-        echo "${{ secrets.PEM }}" > ~/.ssh/id_rsa
+        ssh-keyscan -v -H "$EC2_PUBLIC_IP" >> ~/.ssh/known_hosts 2>&1
+
+        # Check if ssh-keyscan succeeded
+        if [ $? -ne 0 ]; then
+          echo "Error: ssh-keyscan failed. Check EC2_PUBLIC_IP and network connectivity."
+          exit 1
+        fi
+
+        # Write SSH private key
+        echo "***" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
+
+        # Test SSH connection
+        echo "Testing SSH connection to $EC2_PUBLIC_IP"
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@$EC2_PUBLIC_IP "echo 'SSH connection successful!'"
+
+        # Check if SSH connection succeeded
+        if [ $? -ne 0 ]; then
+          echo "Error: SSH connection failed. Check SSH key and EC2 instance configuration."
+          exit 1
+        fi
+
         echo "It's Working!!! Hurraaaayy"
         
     # Step 8: Install Ansible on the GitHub Actions runner
