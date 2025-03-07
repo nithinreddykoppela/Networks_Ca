@@ -48,19 +48,10 @@ jobs:
     - name: setup private key and known hosts
       run: |
         mkdir -p ~/.ssh
-        chmod 700 ~/.ssh
-        
-        # Debugging ssh-keyscan with verbose
-        ssh-keyscan -v -H $EC2_PUBLIC_IP >> ~/.ssh/known_hosts
-        
-        # Ensure private key is correctly passed from GitHub secrets
-        echo "${{ secrets.PEM }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        
-        # Check if private key is correctly set
-        ls -l ~/.ssh
-        cat ~/.ssh/id_rsa
-        cat ~/.ssh/known_hosts
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_PUBLIC_IP }} >> ~/.ssh/known_hosts
+
     # Step 8: Install Ansible on the GitHub Actions runner
     - name: Install Ansible
       run: |
