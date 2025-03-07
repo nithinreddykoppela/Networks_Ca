@@ -59,11 +59,16 @@ jobs:
         echo "$EC2_PUBLIC_IP ansible_ssh_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa" >> hosts.ini
         cat hosts.ini
 
+        
     - name: Setup SSH Key and Known Hosts
       run: |
         # Ensure SSH directory exists
         mkdir -p ~/.ssh
         chmod 700 ~/.ssh
+
+        # Ensure known_hosts file exists
+        touch ~/.ssh/known_hosts
+        chmod 600 ~/.ssh/known_hosts
 
         # Check if EC2 host is already in known_hosts; if not, add it
         if ! ssh-keygen -F "$EC2_PUBLIC_IP" -f ~/.ssh/known_hosts > /dev/null; then
@@ -77,6 +82,7 @@ jobs:
         # Debugging: List files and check known_hosts
         ls -l ~/.ssh
         cat ~/.ssh/known_hosts
+
 
     # Step 8: Install Ansible on the GitHub Actions runner
     - name: Install Ansible
