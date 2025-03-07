@@ -27,7 +27,7 @@ jobs:
         terraform_version: '1.5.0'
 
     # Step 4: Terraform Init - Initialize Terraform configuration
-    - name: Terraform Init 
+    - name: Terraform Init  
       run: terraform init
 
     # Step 5: Terraform Apply - Apply the Terraform configuration to provision the infrastructure
