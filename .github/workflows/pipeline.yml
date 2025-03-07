@@ -37,30 +37,23 @@ jobs:
 
     - name: Get EC2 Public IP and create hosts.ini file for Ansible
       run: |
-        # Extract only the valid IP address, ignoring any debug info
-        EC2_PUBLIC_IP=$(terraform output instance_public_ip | grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1)
+        # Extract EC2 Public IP from Terraform output
+        EC2_PUBLIC_IP=$(terraform output -raw instance_public_ip | grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}')
     
         if [ -z "$EC2_PUBLIC_IP" ]; then
           echo "Error: EC2_PUBLIC_IP is not set."
           exit 1
         fi
 
-        # Validate IPv4 format
-        if ! echo "$EC2_PUBLIC_IP" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
-          echo "Error: Invalid IP format '$EC2_PUBLIC_IP'"
-          exit 1
-        fi
+        echo "EC2_PUBLIC_IP=$EC2_PUBLIC_IP" >> $GITHUB_ENV  # Save for later steps
 
-        # Save IP to GitHub environment
-        echo "EC2_PUBLIC_IP=$EC2_PUBLIC_IP" >> $GITHUB_ENV
-
-        # Generate Ansible hosts.ini file
+        # Create Ansible inventory file
         echo "[web_servers]" > hosts.ini
-        echo "$EC2_PUBLIC_IP ansible_ssh_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa" >> hosts.ini
+        echo "$EC2_PUBLIC_IP ansible_ssh_user=ec2-user ansible_ssh_private_key_file=~/.ssh/id_rsa" >> hosts.ini
         cat hosts.ini
 
-        
-    - name: Setup SSH Key and Known Hosts
+
+    - name: Set up SSH known_hosts and private key
       run: |
         # Ensure SSH directory exists
         mkdir -p ~/.ssh
@@ -70,19 +63,20 @@ jobs:
         touch ~/.ssh/known_hosts
         chmod 600 ~/.ssh/known_hosts
 
-        # Check if EC2 host is already in known_hosts; if not, add it
-        if ! ssh-keygen -F "$EC2_PUBLIC_IP" -f ~/.ssh/known_hosts > /dev/null; then
-          ssh-keyscan -H "$EC2_PUBLIC_IP" >> ~/.ssh/known_hosts
-        fi
+        # Use the EC2_PUBLIC_IP from the previous step
+        EC2_PUBLIC_IP="${{ env.EC2_PUBLIC_IP }}"
+        echo "EC2_PUBLIC_IP: $EC2_PUBLIC_IP"
 
-        # Ensure private key is correctly passed from GitHub secrets
-        echo "${{ secrets.PEM }}" > ~/.ssh/id_rsa
+        # Add EC2 IP to known_hosts securely
+        ssh-keygen -F "$EC2_PUBLIC_IP" -f ~/.ssh/known_hosts > /dev/null || ssh-keyscan -H "$EC2_PUBLIC_IP" >> ~/.ssh/known_hosts
+
+        # Store the private key securely
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
 
-        # Debugging: List files and check known_hosts
+        # Debugging: List SSH files
         ls -l ~/.ssh
         cat ~/.ssh/known_hosts
-
 
     # Step 8: Install Ansible on the GitHub Actions runner
     - name: Install Ansible
@@ -105,3 +99,5 @@ jobs:
       run: terraform destroy -auto-approve
       if: github.event_name == 'push' && github.event.head_commit.message == 'destroy'
   
+
+
