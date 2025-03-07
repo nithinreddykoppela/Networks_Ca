@@ -77,7 +77,7 @@ jobs:
         ssh-keygen -F "$EC2_PUBLIC_IP" -f ~/.ssh/known_hosts > /dev/null || ssh-keyscan -H "$EC2_PUBLIC_IP" >> ~/.ssh/known_hosts
 
         # Store the private key securely
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
+        echo "${{ secrets.PEM }}" | tr -d '\r' > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
 
         # Debugging: List SSH files
