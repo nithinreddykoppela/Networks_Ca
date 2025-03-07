@@ -75,11 +75,13 @@ jobs:
         # Check if ssh-keyscan succeeded
         if [ $? -ne 0 ]; then
           echo "Error: ssh-keyscan failed. Check EC2_PUBLIC_IP and network connectivity."
+          echo "Debug: Trying to ping the EC2 instance..."
+          ping -c 4 "$EC2_PUBLIC_IP"
           exit 1
         fi
 
         # Write SSH private key
-        echo "***" > ~/.ssh/id_rsa
+        echo "${{ secrets.PEM }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
 
         # Test SSH connection
@@ -89,6 +91,10 @@ jobs:
         # Check if SSH connection succeeded
         if [ $? -ne 0 ]; then
           echo "Error: SSH connection failed. Check SSH key and EC2 instance configuration."
+          echo "Debug: Listing SSH key permissions..."
+          ls -l ~/.ssh/id_rsa
+          echo "Debug: Testing SSH key authentication..."
+          ssh -v -i ~/.ssh/id_rsa ec2-user@$EC2_PUBLIC_IP
           exit 1
         fi
 
