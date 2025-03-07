@@ -1,1 +1,15 @@
 name: CI/CD Pipeline for Terraform and Ansible
+
+on:
+  push:
+    branches:
+      - main  # Trigger pipeline when code is pushed to the main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout code from the repository
+    - name: Checkout code
+      uses: actions/checkout@v2
