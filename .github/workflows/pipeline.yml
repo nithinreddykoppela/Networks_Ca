@@ -34,25 +34,28 @@ jobs:
     - name: Terraform Apply
       run: terraform apply -auto-approve
 
-    # Step 6: Get EC2 Public IP and create hosts.ini file for Ansible
     - name: Get EC2 Public IP and create hosts.ini file for Ansible
       run: |
         EC2_PUBLIC_IP=$(terraform output -raw instance_public_ip)
         if [ -z "$EC2_PUBLIC_IP" ]; then
-          echo "Error: EC2_PUBLIC_IP is not set."
-          exit 1
+        echo "Error: EC2_PUBLIC_IP is not set."
+        exit 1
         fi
+        echo "EC2_PUBLIC_IP=$EC2_PUBLIC_IP" >> $GITHUB_ENV  # Save for next steps
+
         echo "[web_servers]" > hosts.ini
         echo "$EC2_PUBLIC_IP ansible_ssh_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa" >> hosts.ini
         cat hosts.ini
 
-    - name: setup private key and known hosts
+    - name: Setup private key and known hosts
       run: |
         mkdir -p ~/.ssh
         chmod 700 ~/.ssh
 
         # Check if EC2 host is already in known_hosts; if not, add it
-        ssh-keygen -F $EC2_PUBLIC_IP || ssh-keyscan -v -H $EC2_PUBLIC_IP >> ~/.ssh/known_hosts
+        "if ! ssh-keygen -F \"$EC2_PUBLIC_IP\" -f ~/.ssh/known_hosts > /dev/null; then"
+          ssh-keyscan -H "$EC2_PUBLIC_IP" >> ~/.ssh/known_hosts
+        fi
 
         # Ensure private key is correctly passed from GitHub secrets
         echo "${{ secrets.PEM }}" > ~/.ssh/id_rsa
@@ -61,6 +64,8 @@ jobs:
         # Debugging: List files and check known_hosts
         ls -l ~/.ssh
         cat ~/.ssh/known_hosts
+    
+
 
     # Step 8: Install Ansible on the GitHub Actions runner
     - name: Install Ansible
