@@ -43,9 +43,24 @@ jobs:
           exit 1
         fi
         echo "[web_servers]" > hosts.ini
-        echo "$EC2_PUBLIC_IP ansible_ssh_user=ubuntu ansible_ssh_private_key_file={path.module}/ansible-key.pem" >> hosts.ini
+        echo "$EC2_PUBLIC_IP ansible_ssh_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa" >> hosts.ini
         cat hosts.ini
-
+    - name: setup private key and known hosts
+      run: |
+        mkdir -p ~/.ssh
+        chmod 700 ~/.ssh
+        
+        # Debugging ssh-keyscan with verbose
+        ssh-keyscan -v -H $EC2_PUBLIC_IP >> ~/.ssh/known_hosts
+        
+        # Ensure private key is correctly passed from GitHub secrets
+        echo "${{ secrets.PEM }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        
+        # Check if private key is correctly set
+        ls -l ~/.ssh
+        cat ~/.ssh/id_rsa
+        cat ~/.ssh/known_hosts
     # Step 8: Install Ansible on the GitHub Actions runner
     - name: Install Ansible
       run: |
@@ -55,12 +70,12 @@ jobs:
     # Step 9: (Optional) Verify the SSH connection using Ansible
     - name: Test SSH Connection
       run: |
-        ansible -i hosts.ini web_servers -m ping
+        ansible -i hosts.ini web_servers -m ping --private-key ~/.ssh/id_rsa
         
     # Step 10: Run Ansible Playbook to install Docker on the EC2 instance
     - name: Run Ansible Playbook
       run: |
-        ansible-playbook -i hosts.ini docker.yml
+        ansible-playbook -i hosts.ini docker.yml 
 
     # Step 11: (Optional) Destroy Terraform-managed resources after the pipeline runs
     - name: Terraform Destroy (Optional)
