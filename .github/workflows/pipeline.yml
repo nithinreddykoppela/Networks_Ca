@@ -47,7 +47,7 @@ jobs:
         cat hosts.ini
 
     # Step 8: Install Ansible on the GitHub Actions runner
-    - name: Install Ansible on GitActions
+    - name: Install Ansible
       run: |
         sudo apt update
         sudo apt install -y ansible
