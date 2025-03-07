@@ -1,6 +1,6 @@
 -
     name: A Playbook to Install Docker 
-    hosts: my-servers
+    hosts: web_servers
     become: yes
 
     tasks:
