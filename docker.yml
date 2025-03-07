@@ -36,11 +36,6 @@
           enabled: yes
           state: started
 
-      - name: Install required packages
-        apt:
-          - python3-pip
-        state: present
-
       - name: Add ec2_user to docker group
         user:
           name: ubuntu
