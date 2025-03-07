@@ -1,5 +1,5 @@
 -
-    name: A Playbook to Install Docker
+    name: A Playbook to Install Docker 
     hosts: my-servers
     become: yes
 
