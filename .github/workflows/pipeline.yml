@@ -59,30 +59,39 @@ jobs:
         cat hosts.ini
 
     # Step 7: Set up SSH known_hosts and private key
-    - name: Set up SSH known_hosts and private key
+    - name: Configure SSH Access
       run: |
-        # Ensure SSH directory exists
+        # Ensure the SSH directory exists with correct permissions
         mkdir -p ~/.ssh
         chmod 700 ~/.ssh
-
-        # Ensure known_hosts file exists
         touch ~/.ssh/known_hosts
         chmod 600 ~/.ssh/known_hosts
 
         # Use the EC2_PUBLIC_IP from the previous step
         EC2_PUBLIC_IP="${{ env.EC2_PUBLIC_IP }}"
-        echo "EC2_PUBLIC_IP: $EC2_PUBLIC_IP"
 
-        # Add EC2 IP to known_hosts securely
-        ssh-keygen -F "$EC2_PUBLIC_IP" -f ~/.ssh/known_hosts > /dev/null || ssh-keyscan -H "$EC2_PUBLIC_IP" >> ~/.ssh/known_hosts
+        if [ -z "$EC2_PUBLIC_IP" ]; then
+          echo "Error: EC2_PUBLIC_IP is not set."
+          exit 1
+        fi
+
+        echo "EC2 Public IP: $EC2_PUBLIC_IP"
+
+        # Add EC2 instance to known_hosts to avoid SSH authenticity prompt
+        ssh-keyscan -H "$EC2_PUBLIC_IP" >> ~/.ssh/known_hosts 2>/dev/null
+        echo "EC2 host key added to known_hosts."
 
         # Store the private key securely
+        echo "Storing private key from GitHub Secrets..."
         echo "${{ secrets.PEM }}" | tr -d '\r' > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
+        echo "Private key stored securely."
 
-        # Debugging: List SSH files
+        # Debugging: Verify SSH setup
+        echo "Verifying SSH configuration..."
         ls -l ~/.ssh
         cat ~/.ssh/known_hosts
+
 
 
     # Step 8: Install Ansible on the GitHub Actions runner
@@ -106,5 +115,3 @@ jobs:
       run: terraform destroy -auto-approve
       if: github.event_name == 'push' && github.event.head_commit.message == 'destroy'
   
-
-
