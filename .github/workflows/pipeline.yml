@@ -25,6 +25,47 @@ jobs:
       uses: hashicorp/setup-terraform@v2
       with:
         terraform_version: '1.5.0'
+
+ # Step 4: Terraform Init - Initialize Terraform configuration
+    - name: Terraform Init
+      run: terraform init
+
+    # Step 5: Terraform Apply - Apply the Terraform configuration to provision the infrastructure
+    - name: Terraform Apply
+      run: terraform apply -auto-approve
+
+    # Step 6: Get EC2 Public IP and create hosts.ini file for Ansible
+    - name: Get EC2 Public IP and create hosts.ini file for Ansible
+      run: |
+        EC2_PUBLIC_IP=$(terraform output -raw instance_public_ip)
+        if [ -z "$EC2_PUBLIC_IP" ]; then
+          echo "Error: EC2_PUBLIC_IP is not set."
+          exit 1
+        fi
+        echo "[web_servers]" > hosts.ini
+        echo "$EC2_PUBLIC_IP ansible_ssh_user=ubuntu ansible_ssh_private_key_file={path.module}/ansible-key.pem" >> hosts.ini
+        cat hosts.ini
+
+    # Step 8: Install Ansible on the GitHub Actions runner
+    - name: Install Ansible
+      run: |
+        sudo apt update
+        sudo apt install -y ansible
+
+    # Step 9: (Optional) Verify the SSH connection using Ansible
+    - name: Test SSH Connection
+      run: |
+        ansible -i hosts.ini web_servers -m ping --private-key ansible-key.pem
+        
+    # Step 10: Run Ansible Playbook to install Docker on the EC2 instance
+    - name: Run Ansible Playbook
+      run: |
+        ansible-playbook -i hosts.ini docker.yml
+
+    # Step 11: (Optional) Destroy Terraform-managed resources after the pipeline runs
+    - name: Terraform Destroy (Optional)
+      run: terraform destroy -auto-approve
+      if: github.event_name == 'push' && github.event.head_commit.message == 'destroy'
   
 
 
