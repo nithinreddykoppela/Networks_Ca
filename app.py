@@ -6,10 +6,11 @@ app = Flask(__name__)
 def home():
     return '''  <html>
                 <head>
-                <title>CI/CD</title>
+                <title> CI/CD-Assignment </title>
                 </head>
                 <body>
-                <h1> Hello DBS Network CA Thank you sir!!!. </h1>
+                <h1> Automated Container Deployment and Administration in the Cloud </h1>
+                <h2> Docker is built and running </h2>
                 </body>
                 </html>'''
 
